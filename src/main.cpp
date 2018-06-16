@@ -381,9 +381,6 @@ public:
 
         }
         m.deltaTicks();
-
-
-
         Askforw();
         Askfordouble();
         std::ofstream logfile("log.txt");
