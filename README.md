@@ -1,2 +1,2 @@
 # midi2json
-MIDI to JSON coverter for Piano Tiles 2
+MIDI to JSON converter for Piano Tiles 2
