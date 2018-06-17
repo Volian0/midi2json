@@ -384,6 +384,7 @@ public:
         Askforw();
         Askfordouble();
         std::ofstream logfile("log.txt");
+        std::vector<std::string> warnings;
         for (int trak=0; trak<m.getTrackCount(); ++trak)
         {
             logfile << std::endl << std::endl << "TRACK " << trak+1 << ":" << std::endl<<std::endl;
@@ -412,6 +413,7 @@ public:
                         if (notevalues[y]==notevalue)
                         {
                             checker=false;
+                            warnings.push_back("Duplicated note in chord was removed: " + Checkn(notevalue));
                             break;
                         }
                     }
@@ -468,9 +470,14 @@ public:
                         lastontick=0;
                     }
                 }
-
                 logfile<<std::flush;
             }
+        }
+        for (unsigned u=0; u<warnings.size(); ++u)
+        {
+            if (u==0)
+                logfile << std::endl << std::endl << "WARNINGS:" << std::endl << std::endl;
+            logfile << warnings[u] << std::endl;
         }
     }
 };
