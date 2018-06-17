@@ -404,7 +404,19 @@ public:
                     if (lastontick==0)
                         lastontick=i;
                     ++notes;
-                    notevalues.push_back(e.getKeyNumber());
+                    int notevalue = e.getKeyNumber();
+                    /// Check for duplicated notes
+                    bool checker=true;
+                    for (unsigned y=0; y<notevalues.size(); ++y)
+                    {
+                        if (notevalues[y]==notevalue)
+                        {
+                            checker=false;
+                            break;
+                        }
+                    }
+                    if (checker)
+                        notevalues.push_back(notevalue);
                 }
                 else if (e.isNoteOff())
                 {
