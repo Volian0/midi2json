@@ -11,6 +11,12 @@
 unsigned x=1;
 int dtick;
 int dchannel;
+int irchannel;
+void Askfoir()
+{
+    std::cout << "Ignore rests on MIDI track (0 to disable): " << std::flush;
+    std::cin >> irchannel;
+}
 void Askforw()
 {
     std::cout << "MIDI tick for Q: " << std::flush;
@@ -383,8 +389,10 @@ public:
         m.deltaTicks();
         Askforw();
         Askfordouble();
+        Askfoir();
         std::ofstream logfile("log.txt");
         std::vector<std::string> warnings;
+        if ( dchannel == irchannel ) warnings.push_back("5<> is not correct");
         for (int trak=0; trak<m.getTrackCount(); ++trak)
         {
             logfile << std::endl << std::endl << "TRACK " << trak+1 << ":" << std::endl<<std::endl;
@@ -395,6 +403,8 @@ public:
             int lastontick=0;
             int lastduration=0;
             bool doubler=0;
+
+            int irdelay=0;
 
             for (int i=0; i<evc; ++i)
             {
@@ -435,8 +445,21 @@ public:
                         {
                             if (doubler==1)
                                 Message("Rest within 5<>!",true);
-                            logfile<<Checkd(m[trak][lastontick].tick,1)+',';
+
+                            if (irchannel==trak+1) irdelay+=m[trak][lastontick].tick;
+
+                            else logfile<<Checkd(m[trak][lastontick].tick,1)+',';
+
                         }
+
+                        /// add length + rest length to the tile
+
+                        if (irchannel==trak+1&&irdelay!=0)
+                        {
+                            logfile << "["+Checkd(irdelay,0)+"],";
+                            irdelay = 0;
+                        }
+
                         if (notevalues.size()==1)
                         {
                             logfile << Checkn(notevalues[0]);
@@ -452,7 +475,14 @@ public:
                             }
                             logfile << ")";
                         }
-                        logfile << "["+Checkd(lastduration,0)+"]";
+
+
+
+                        if (irchannel==trak+1) irdelay=lastduration;
+
+                        else logfile << "["+Checkd(lastduration,0)+"]";
+
+
                         if (trak+1==dchannel&&lastduration==dtick)
                         {
                             doubler = !doubler;
@@ -463,7 +493,7 @@ public:
                         }
                         else if (doubler==1)
                             Message("Fatal error with 5<>!",true);
-                        logfile << ",";
+                        if (irchannel!=trak+1) logfile << ",";
                         notevalues.clear();
 
                         lastduration=0;
@@ -472,6 +502,11 @@ public:
                 }
                 logfile<<std::flush;
             }
+                        if (irchannel==trak+1&&irdelay!=0)
+                        {
+                            logfile << "["+Checkd(irdelay,0)+"],";
+                            irdelay = 0;
+                        }
         }
         for (unsigned u=0; u<warnings.size(); ++u)
         {
