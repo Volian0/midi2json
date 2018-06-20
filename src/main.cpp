@@ -392,7 +392,7 @@ public:
         Askfoir();
         std::ofstream logfile("log.txt");
         std::vector<std::string> warnings;
-        if ( dchannel == irchannel ) warnings.push_back("5<> is not correct");
+        if ( (dchannel == irchannel) && (dchannel != 0) ) warnings.push_back("5<> is not correct");
         for (int trak=0; trak<m.getTrackCount(); ++trak)
         {
             logfile << std::endl << std::endl << "TRACK " << trak+1 << ":" << std::endl<<std::endl;
