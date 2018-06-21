@@ -13,3 +13,5 @@ This program converts quantized midi files to text files with PT2 note notation.
 # How to update
 `cd midi2json`  
 `git pull origin master`  
+`./compile.sh` (Linux)  
+`compile.sh` (MinGW Distro)  
