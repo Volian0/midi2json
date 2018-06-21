@@ -10,3 +10,6 @@ This program converts quantized midi files to text files with PT2 note notation.
 `git clone https://github.com/Volian0/midi2json`  
 `cd midi2json`  
 `compile.sh`  
+# How to update
+`cd midi2json`  
+`git pull origin master`  
