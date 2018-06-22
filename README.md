@@ -6,5 +6,5 @@ This program converts quantized midi files to text files with PT2 note notation.
 `g++ src/*.cpp src/midi/*.cpp -std=c++11 -o midi2json`  
 # How to update
 `cd midi2json`  
-`git pull origin master`  
+`git pull`  
 `g++ src/*.cpp src/midi/*.cpp -std=c++11 -o midi2json`  
