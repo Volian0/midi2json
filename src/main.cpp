@@ -387,12 +387,14 @@ public:
 
         }
         m.deltaTicks();
+        std::cout << "Suggested tick/Q: " << m.getTicksPerQuarterNote() * 8 << std::endl << std::endl;
         Askforw();
         Askfordouble();
         Askfoir();
         std::ofstream logfile("log.txt");
         std::vector<std::string> warnings;
-        if ( (dchannel == irchannel) && (dchannel != 0) ) warnings.push_back("5<> is not correct");
+        if ( (dchannel == irchannel) && (dchannel != 0) )
+            warnings.push_back("5<> is not correct");
         for (int trak=0; trak<m.getTrackCount(); ++trak)
         {
             logfile << std::endl << std::endl << "TRACK " << trak+1 << ":" << std::endl<<std::endl;
@@ -446,9 +448,11 @@ public:
                             if (doubler==1)
                                 Message("Rest within 5<>!",true);
 
-                            if (irchannel==trak+1) irdelay+=m[trak][lastontick].tick;
+                            if (irchannel==trak+1)
+                                irdelay+=m[trak][lastontick].tick;
 
-                            else logfile<<Checkd(m[trak][lastontick].tick,1)+',';
+                            else
+                                logfile<<Checkd(m[trak][lastontick].tick,1)+',';
 
                         }
 
@@ -478,9 +482,11 @@ public:
 
 
 
-                        if (irchannel==trak+1) irdelay=lastduration;
+                        if (irchannel==trak+1)
+                            irdelay=lastduration;
 
-                        else logfile << "["+Checkd(lastduration,0)+"]";
+                        else
+                            logfile << "["+Checkd(lastduration,0)+"]";
 
 
                         if (trak+1==dchannel&&lastduration==dtick)
@@ -493,7 +499,8 @@ public:
                         }
                         else if (doubler==1)
                             Message("Fatal error with 5<>!",true);
-                        if (irchannel!=trak+1) logfile << ",";
+                        if (irchannel!=trak+1)
+                            logfile << ",";
                         notevalues.clear();
 
                         lastduration=0;
@@ -502,11 +509,11 @@ public:
                 }
                 logfile<<std::flush;
             }
-                        if (irchannel==trak+1&&irdelay!=0)
-                        {
-                            logfile << "["+Checkd(irdelay,0)+"],";
-                            irdelay = 0;
-                        }
+            if (irchannel==trak+1&&irdelay!=0)
+            {
+                logfile << "["+Checkd(irdelay,0)+"],";
+                irdelay = 0;
+            }
         }
         for (unsigned u=0; u<warnings.size(); ++u)
         {
