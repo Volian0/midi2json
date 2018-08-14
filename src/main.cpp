@@ -9,8 +9,8 @@
 #include <algorithm>
 ///#include <windows.h>
 unsigned x=1;
-int dtick;
-int dchannel;
+unsigned dtick;
+unsigned dchannel;
 int irchannel;
 void Askfoir()
 {
@@ -367,10 +367,89 @@ std::string Checkd(unsigned t,bool mode)
     }
     return result;
 }
-
+struct element
+{
+    std::vector<unsigned char> notes;
+    unsigned length=0;
+    std::string parse()
+    {
+        if (notes.empty())
+            return Checkd(length,1);
+        std::string temp;
+        if (notes.size()==1)
+            temp = Checkn(notes[0]);
+        else
+        {
+            temp+='(';
+            for (size_t x=0; x<notes.size(); ++x)
+            {
+                temp+=Checkn(notes[x]);
+                if (x<notes.size()-1)
+                    temp+='.';
+            }
+            temp+=')';
+        }
+        temp+="["+Checkd(length,0)+"]";
+        return temp;
+    }
+};
+class JsonTrack
+{
+    friend class plik;
+    std::vector<element*> elements;
+    ~JsonTrack()
+    {
+        for (element* e : elements)
+        {
+            delete e;
+        }
+    }
+};
 class plik
 {
     MidiFile m;
+    std::vector<JsonTrack*> JsonTracks;
+    std::vector<std::string> warnings;
+    void ParseTracks()
+    {
+        std::ofstream logfile("log.txt");
+        for (size_t CurrentTrack=0; CurrentTrack<JsonTracks.size(); ++CurrentTrack)
+        {
+            logfile << "\n\n" << "Track " << CurrentTrack + 1 << '\n' << std::endl;
+            bool doubler=false;
+            bool once;
+            for (element* e : JsonTracks[CurrentTrack]->elements)
+            {
+                if (doubler==false&&CurrentTrack+1==dchannel&&e->length==dtick)
+                {
+                    doubler = true;
+                    once = true;
+                    logfile << "5<";
+                }
+                else
+                    once = false;
+
+                //
+                logfile << e->parse();
+                //
+
+                if (doubler==true&&!once)
+                {
+                    doubler=false;
+                    if (e->length!=dtick)
+                        Message("Fatal error with 5<>!",true);
+                    logfile << '>';
+                }
+                logfile << ',' << std::flush;
+            }
+            if (doubler==true)
+                Message("5<> not closed!",true);
+        }
+        if (!warnings.empty())
+            logfile << "\n\n" << "Warnings" << '\n' << std::endl;
+        for (std::string w : warnings)
+            logfile << w << std::endl;
+    }
 public:
     plik()
     {
@@ -384,29 +463,21 @@ public:
         if (m.getTrackCount()<1)
         {
             Message("Wrong track number value.",true);
-
         }
         m.deltaTicks();
         std::cout << "Suggested tick/Q: " << m.getTicksPerQuarterNote() * 8 << std::endl << std::endl;
         Askforw();
         Askfordouble();
         Askfoir();
-        std::ofstream logfile("log.txt");
-        std::vector<std::string> warnings;
-        if ( (dchannel == irchannel) && (dchannel != 0) )
-            warnings.push_back("5<> is not correct");
         for (int trak=0; trak<m.getTrackCount(); ++trak)
         {
-            logfile << std::endl << std::endl << "TRACK " << trak+1 << ":" << std::endl<<std::endl;
+            JsonTracks.push_back(new JsonTrack);
             int evc = m.getEventCount(trak);
             MidiEvent e;
             int notes=0;
             std::vector<int> notevalues;
             int lastontick=0;
             int lastduration=0;
-            bool doubler=0;
-
-            int irdelay=0;
 
             for (int i=0; i<evc; ++i)
             {
@@ -418,14 +489,14 @@ public:
                         lastontick=i;
                     ++notes;
                     int notevalue = e.getKeyNumber();
-                    /// Check for duplicated notes
+                    // Check for duplicated notes
                     bool checker=true;
                     for (unsigned y=0; y<notevalues.size(); ++y)
                     {
                         if (notevalues[y]==notevalue)
                         {
                             checker=false;
-                            warnings.push_back("Duplicated note in chord was removed: " + Checkn(notevalue));
+                            warnings.push_back("Duplicated note removed: " + Checkn(notevalue));
                             break;
                         }
                     }
@@ -439,87 +510,57 @@ public:
                     --notes;
                     if (notes==0)
                     {
-                        if (trak+1==dchannel&&lastduration==dtick&&doubler==0)
-                        {
-                            logfile<<"5<";
-                        }
                         if (m[trak][lastontick].tick!=0)
                         {
-                            if (doubler==1)
-                                Message("Rest within 5<>!",true);
-
+                            // Add a rest to the last element
                             if (irchannel==trak+1)
-                                irdelay+=m[trak][lastontick].tick;
-
+                            {
+                                if (JsonTracks.back()->elements.empty())
+                                    Message("No elements.",true);
+                                if (JsonTracks.back()->elements.back()->notes.empty())
+                                    Message("No notes.",true);
+                                JsonTracks.back()->elements.back()->length += m[trak][lastontick].tick;
+                            }
+                            // Add a rest as the element
                             else
-                                logfile<<Checkd(m[trak][lastontick].tick,1)+',';
-
-                        }
-
-                        /// add length + rest length to the tile
-
-                        if (irchannel==trak+1&&irdelay!=0)
-                        {
-                            logfile << "["+Checkd(irdelay,0)+"],";
-                            irdelay = 0;
+                            {
+                                JsonTracks.back()->elements.push_back(new element);
+                                JsonTracks.back()->elements.back()->length=m[trak][lastontick].tick;
+                            }
                         }
 
                         if (notevalues.size()==1)
                         {
-                            logfile << Checkn(notevalues[0]);
+                            JsonTracks.back()->elements.push_back(new element);
+                            JsonTracks.back()->elements.back()->notes.push_back(notevalues[0]);
                         }
                         else
                         {
-                            logfile << "(";
-                            for (unsigned x=0; x<notevalues.size(); ++x)
+                            JsonTracks.back()->elements.push_back(new element);
+                            for (size_t x=0; x<notevalues.size(); ++x)
                             {
-                                logfile << Checkn(notevalues[x]);
-                                if (x+1<notevalues.size())
-                                    logfile << ".";
-                            }
-                            logfile << ")";
-                        }
-
-
-
-                        if (irchannel==trak+1)
-                            irdelay=lastduration;
-
-                        else
-                            logfile << "["+Checkd(lastduration,0)+"]";
-
-
-                        if (trak+1==dchannel&&lastduration==dtick)
-                        {
-                            doubler = !doubler;
-                            if (doubler==0)
-                            {
-                                logfile<<">";
+                                JsonTracks.back()->elements.back()->notes.push_back(notevalues[x]);
                             }
                         }
-                        else if (doubler==1)
-                            Message("Fatal error with 5<>!",true);
-                        if (irchannel!=trak+1)
-                            logfile << ",";
+                        if (JsonTracks.back()->elements.back()->notes.empty())
+                            Message("No notes.",true);
+                        JsonTracks.back()->elements.back()->length = lastduration;
+
                         notevalues.clear();
 
                         lastduration=0;
                         lastontick=0;
                     }
                 }
-                logfile<<std::flush;
-            }
-            if (irchannel==trak+1&&irdelay!=0)
-            {
-                logfile << "["+Checkd(irdelay,0)+"],";
-                irdelay = 0;
             }
         }
-        for (unsigned u=0; u<warnings.size(); ++u)
+        ParseTracks();
+    }
+    ~plik()
+    {
+        for (JsonTrack * t : JsonTracks)
         {
-            if (u==0)
-                logfile << std::endl << std::endl << "WARNINGS:" << std::endl << std::endl;
-            logfile << warnings[u] << std::endl;
+            delete t;
         }
     }
 };
